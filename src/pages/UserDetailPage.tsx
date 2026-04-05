@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Row, Col, Descriptions, Table, Tag, Button, Spin, Modal, Space, Timeline } from 'antd';
-import { ArrowLeftOutlined, StopOutlined, CheckCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CheckCircleOutlined, PauseCircleOutlined } from '@ant-design/icons';
 import { PageHeader } from '../components/shared/PageHeader';
 import { StatusTag } from '../components/shared/StatusTag';
 import { RbacGate } from '../components/shared/RbacGate';

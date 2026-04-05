@@ -1,4 +1,4 @@
-import { Input, Select, Space, Button } from 'antd';
+import { Input, Select, Button } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useUsersStore } from '../../store/users.store';
 import type { KycTier, KycState, WalletState } from '../../types/user.types';

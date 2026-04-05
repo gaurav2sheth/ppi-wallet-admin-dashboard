@@ -88,8 +88,8 @@ export function mockGetUsers(filters: UserFilters): PaginatedResponse<WalletUser
 
   const dir = filters.sortOrder === 'ascend' ? 1 : -1;
   data.sort((a, b) => {
-    const aVal = (a as Record<string, unknown>)[filters.sortField];
-    const bVal = (b as Record<string, unknown>)[filters.sortField];
+    const aVal = (a as unknown as Record<string, unknown>)[filters.sortField];
+    const bVal = (b as unknown as Record<string, unknown>)[filters.sortField];
     if (typeof aVal === 'string' && typeof bVal === 'string') return aVal.localeCompare(bVal) * dir;
     return 0;
   });
