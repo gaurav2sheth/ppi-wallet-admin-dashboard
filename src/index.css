@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paytm-navy: #002E6E;
+  --color-paytm-navy-dark: #001F4D;
+  --color-paytm-cyan: #00B9F1;
+  --color-paytm-cyan-light: #E6F7FE;
+  --color-paytm-green: #12B76A;
+  --color-paytm-red: #F04438;
+  --color-paytm-orange: #F79009;
+  --color-paytm-bg: #F5F7FA;
+  --color-paytm-surface: #FFFFFF;
+  --color-paytm-text: #1A1A2E;
+  --color-paytm-muted: #666666;
+  --color-paytm-border: #D0D5DD;
+  --color-paytm-light-blue: #E8F4FD;
+  --font-family-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-paytm-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ant Design sidebar dark theme overrides */
+.admin-sidebar .ant-menu-dark {
+  background: transparent;
+}
+
+.admin-sidebar .ant-layout-sider-trigger {
+  background: #001F4D;
+}
+
+/* Scrollbar styling */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb:hover { background: #98a2b3; }
