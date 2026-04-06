@@ -60,8 +60,54 @@ function generateUsers(): WalletUser[] {
   return users.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
+// Convert shared wallet app users to WalletUser format
+function convertSharedUsers(shared: import('../shared-data').SharedUser[]): WalletUser[] {
+  return shared.map((u) => ({
+    id: u.user_id,
+    userId: u.user_id,
+    walletId: u.wallet_id,
+    name: u.name,
+    phone: u.phone,
+    email: `${u.name.toLowerCase().replace(/\s+/g, '.')}@wallet.app`,
+    kycTier: (u.kyc_tier || 'MINIMUM') as KycTier,
+    kycState: (u.kyc_state || 'MIN_KYC') as KycState,
+    walletState: (u.wallet_state || 'ACTIVE') as WalletState,
+    balancePaise: '0',
+    heldPaise: '0',
+    availablePaise: '0',
+    isActive: u.is_active !== false,
+    walletExpiryDate: null,
+    lastActivityAt: u.last_activity_at || u.updated_at,
+    createdAt: u.created_at,
+    updatedAt: u.updated_at,
+    _isRealUser: true, // Tag to distinguish real vs mock users
+  } as WalletUser & { _isRealUser?: boolean }));
+}
+
+let _sharedUsers: WalletUser[] = [];
+
+export function injectSharedUsers(shared: import('../shared-data').SharedUser[], balances: Record<string, import('../shared-data').SharedBalance>) {
+  _sharedUsers = convertSharedUsers(shared);
+  // Update balances from shared data
+  _sharedUsers.forEach(u => {
+    const bal = balances[u.walletId];
+    if (bal) {
+      u.balancePaise = bal.balance_paise;
+      u.heldPaise = bal.held_paise;
+      u.availablePaise = bal.available_paise;
+    }
+  });
+  _users = null; // Force re-merge
+}
+
 function getUsers(): WalletUser[] {
-  if (!_users) _users = generateUsers();
+  if (!_users) {
+    const mockUsers = generateUsers();
+    // Merge: real wallet app users first, then mock data
+    const realIds = new Set(_sharedUsers.map(u => u.walletId));
+    const filtered = mockUsers.filter(u => !realIds.has(u.walletId));
+    _users = [..._sharedUsers, ...filtered].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
   return _users;
 }
 

@@ -74,8 +74,40 @@ function generateTransactions(): Transaction[] {
   return txns.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
+// Convert shared wallet app transactions to Transaction format
+function convertSharedTransactions(shared: import('../shared-data').SharedTransaction[]): Transaction[] {
+  return shared.map((t) => ({
+    id: t.id,
+    sagaType: (t.saga_type || 'MERCHANT_PAY') as SagaType,
+    status: (t.status || 'COMPLETED') as SagaStatus,
+    walletId: t.wallet_id,
+    userName: t.user_name,
+    userPhone: '',
+    amountPaise: t.amount_paise,
+    counterparty: t.counterparty || null,
+    description: t.description,
+    idempotencyKey: generateUUID(),
+    error: null,
+    createdAt: t.created_at,
+    updatedAt: t.created_at,
+    completedAt: t.created_at,
+    _isRealTxn: true,
+  } as Transaction & { _isRealTxn?: boolean }));
+}
+
+let _sharedTransactions: Transaction[] = [];
+
+export function injectSharedTransactions(shared: import('../shared-data').SharedTransaction[]) {
+  _sharedTransactions = convertSharedTransactions(shared);
+  _transactions = null; // Force re-merge
+}
+
 function getTransactions(): Transaction[] {
-  if (!_transactions) _transactions = generateTransactions();
+  if (!_transactions) {
+    const mockTxns = generateTransactions();
+    // Real wallet transactions appear first (most recent)
+    _transactions = [..._sharedTransactions, ...mockTxns].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }
   return _transactions;
 }
 
