@@ -17,7 +17,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 export default function App() {
   return (
     <ConfigProvider theme={paytmTheme}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
 
