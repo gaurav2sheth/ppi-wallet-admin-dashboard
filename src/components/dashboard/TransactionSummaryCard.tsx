@@ -3,22 +3,55 @@ import { Card, Button, Typography, Spin, Alert } from 'antd';
 import { RobotOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { adminApi } from '../../api/admin.api';
 import { mockGetTransactions } from '../../api/mock/transactions.mock';
-import type { DEFAULT_TRANSACTION_FILTERS } from '../../types/transaction.types';
+import type { Transaction, DEFAULT_TRANSACTION_FILTERS } from '../../types/transaction.types';
 
 const { Text, Paragraph } = Typography;
+
+function formatPaise(paise: string): string {
+  return '₹' + (Number(paise) / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Generates a plain-English summary from transactions without needing the Claude API */
+function generateLocalSummary(txns: Transaction[]): string {
+  if (txns.length === 0) return 'No transactions found to summarise.';
+
+  const totalValue = txns.reduce((sum, t) => sum + Number(t.amountPaise), 0);
+  const completed = txns.filter(t => t.status === 'COMPLETED');
+  const failed = txns.filter(t => t.status === 'DLQ' || t.status === 'COMPENSATED');
+  const largest = [...txns].sort((a, b) => Number(b.amountPaise) - Number(a.amountPaise))[0];
+  const highValue = txns.filter(t => Number(t.amountPaise) >= 500000);
+
+  const typeCount: Record<string, number> = {};
+  for (const t of txns) typeCount[t.sagaType] = (typeCount[t.sagaType] || 0) + 1;
+  const topType = Object.entries(typeCount).sort((a, b) => b[1] - a[1])[0];
+
+  const lines: string[] = [];
+  lines.push(`Transaction Summary (${txns.length} transactions):`);
+  lines.push(`Total value: ${formatPaise(totalValue.toString())}. ${completed.length} completed, ${failed.length} failed/compensated.`);
+  lines.push(`Largest transaction: ${formatPaise(largest.amountPaise)} — ${largest.description} on ${formatDate(largest.createdAt)}.`);
+  if (highValue.length > 0) lines.push(`${highValue.length} high-value transaction${highValue.length > 1 ? 's' : ''} above ₹5,000.`);
+  if (topType) lines.push(`Most common type: ${topType[0].replace(/_/g, ' ')} (${topType[1]} transactions).`);
+
+  return lines.join('\n');
+}
 
 export function TransactionSummaryCard() {
   const [summary, setSummary] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAiSummary, setIsAiSummary] = useState(false);
 
   const handleGenerate = async () => {
     setLoading(true);
     setError(null);
     setSummary(null);
+    setIsAiSummary(false);
 
     try {
-      // Fetch recent 50 transactions from mock data
       const result = mockGetTransactions({
         search: '',
         sagaType: null,
@@ -34,8 +67,14 @@ export function TransactionSummaryCard() {
         sortOrder: 'descend',
       } satisfies typeof DEFAULT_TRANSACTION_FILTERS);
 
-      const res = await adminApi.summariseTransactions(result.data);
-      setSummary(res.summary);
+      // Try Claude API first, fall back to local summary
+      try {
+        const res = await adminApi.summariseTransactions(result.data);
+        setSummary(res.summary);
+        setIsAiSummary(true);
+      } catch {
+        setSummary(generateLocalSummary(result.data));
+      }
     } catch (err: any) {
       const msg = err?.response?.data?.error || err?.error || err?.message || 'Failed to generate summary';
       setError(msg);
@@ -110,7 +149,7 @@ export function TransactionSummaryCard() {
 
       <div className="mt-3 flex justify-end">
         <Text type="secondary" style={{ fontSize: 11 }}>
-          Powered by Claude
+          {isAiSummary ? 'Powered by Claude' : 'Smart Summary'}
         </Text>
       </div>
     </Card>
