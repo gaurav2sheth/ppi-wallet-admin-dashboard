@@ -79,8 +79,8 @@ function adminDataBridgePlugin() {
               return;
             }
 
-            const { handleChat } = await import('../mcp/chat-handler.js');
-            const reply = await handleChat(message, apiKey, 'admin');
+            const chatModule = await import(path.resolve(__dirname, '../mcp/chat-handler.js'));
+            const reply = await chatModule.handleChat(message, apiKey, 'admin');
             res.writeHead(200);
             res.end(JSON.stringify({ reply }));
           } catch (err: any) {
