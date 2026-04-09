@@ -4,6 +4,7 @@ import type { Transaction, TransactionDetail, TransactionFilters } from '../type
 import type { DashboardOverview } from '../types/analytics.types';
 import type { KycStats, KycQueueItem } from '../types/analytics.types';
 import { api, apiReachable } from './client';
+import axios from 'axios';
 import { mockGetUsers, mockGetUserDetail, mockUpdateUserStatus } from './mock/users.mock';
 import { mockGetTransactions, mockGetTransactionDetail } from './mock/transactions.mock';
 import { mockGetDashboardOverview } from './mock/analytics.mock';
@@ -95,5 +96,37 @@ export const adminApi = {
       await delay();
       return mockGetKycQueue();
     }
+  },
+
+  // ── AI Transaction Summariser ──
+  summariseTransactions: async (transactions: Transaction[]): Promise<{ summary: string }> => {
+    const payload = {
+      transactions: transactions.map(t => ({
+        id: t.id,
+        sagaType: t.sagaType,
+        status: t.status,
+        amountPaise: t.amountPaise,
+        userName: t.userName,
+        description: t.description,
+        createdAt: t.createdAt,
+        counterparty: t.counterparty,
+        error: t.error,
+      })),
+    };
+
+    // Try backend first (port 3000), then fall back to local Vite middleware
+    try {
+      if (apiReachable) {
+        const res = await api.post('/api/summarise-transactions', payload);
+        return res as unknown as { summary: string };
+      }
+    } catch { /* fall through to local */ }
+
+    // Fallback: call Vite dev server middleware (same origin)
+    const res = await axios.post('/api/summarise-transactions', payload, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+    });
+    return res.data;
   },
 };
