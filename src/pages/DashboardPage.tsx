@@ -3,6 +3,7 @@ import { Row, Col, Alert, Spin } from 'antd';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { QuickStats } from '../components/dashboard/QuickStats';
 import { TransactionSummaryCard } from '../components/dashboard/TransactionSummaryCard';
+import { AiChatCard } from '../components/dashboard/AiChatCard';
 import { PageHeader } from '../components/shared/PageHeader';
 import { useDashboardStore } from '../store/dashboard.store';
 import { useUIStore } from '../store/ui.store';
@@ -50,6 +51,9 @@ export function DashboardPage() {
       <Row gutter={[16, 16]} className="mt-4">
         <Col xs={24} lg={16}>
           <TransactionSummaryCard />
+        </Col>
+        <Col xs={24} lg={8}>
+          <AiChatCard />
         </Col>
       </Row>
     </div>
