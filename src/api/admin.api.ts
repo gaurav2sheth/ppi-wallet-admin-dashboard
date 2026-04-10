@@ -123,7 +123,8 @@ export const adminApi = {
     } catch { /* fall through to local */ }
 
     // Fallback: call Vite dev server middleware (same origin)
-    const res = await axios.post('/api/summarise-transactions', payload, {
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    const res = await axios.post(`${apiBase}/api/summarise-transactions?role=admin`, payload, {
       headers: { 'Content-Type': 'application/json' },
       timeout: 30000,
     });
