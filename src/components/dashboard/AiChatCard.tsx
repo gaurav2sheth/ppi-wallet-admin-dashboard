@@ -140,7 +140,32 @@ export function AiChatCard() {
 
     try {
       const apiBase = import.meta.env.VITE_API_URL || '';
-      const res = await axios.post(`${apiBase}/api/chat?role=admin`, { message: text.trim() }, { timeout: 60000 });
+      // Send app context so AI responses match the dashboard data
+      const uf = (overrides: Partial<typeof DEFAULT_USER_FILTERS> = {}) => ({ ...DEFAULT_USER_FILTERS, ...overrides });
+      const tf = (overrides: Partial<typeof DEFAULT_TRANSACTION_FILTERS> = {}) => ({ ...DEFAULT_TRANSACTION_FILTERS, ...overrides });
+      const { data: ctxUsers, total: totalUsers } = mockGetUsers(uf({ pageSize: 20 }));
+      const { data: ctxTxns, total: totalTxns } = mockGetTransactions(tf({ pageSize: 15 }));
+      const context = {
+        total_users: totalUsers,
+        total_transactions: totalTxns,
+        users: ctxUsers.slice(0, 20).map(u => ({
+          name: u.name,
+          wallet_id: u.walletId,
+          balance: '₹' + (Number(u.balancePaise) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          wallet_state: u.walletState,
+          kyc_state: u.kycState,
+        })),
+        recent_transactions: ctxTxns.slice(0, 15).map(t => ({
+          id: t.id,
+          user_name: t.userName,
+          saga_type: t.sagaType,
+          status: t.status,
+          amount: '₹' + (Number(t.amountPaise) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+          description: t.description,
+          created_at: t.createdAt,
+        })),
+      };
+      const res = await axios.post(`${apiBase}/api/chat?role=admin`, { message: text.trim(), context }, { timeout: 60000 });
       setMessages(prev => [...prev, { role: 'assistant', text: res.data.reply }]);
     } catch {
       // Fallback: use real data from the app's mock layer
