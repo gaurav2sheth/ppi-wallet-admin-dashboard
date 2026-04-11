@@ -4,6 +4,7 @@ import { MetricCard } from '../components/dashboard/MetricCard';
 import { QuickStats } from '../components/dashboard/QuickStats';
 import { TransactionSummaryCard } from '../components/dashboard/TransactionSummaryCard';
 import { AiChatCard } from '../components/dashboard/AiChatCard';
+import { LoadGuardLog } from '../components/dashboard/LoadGuardLog';
 import { PageHeader } from '../components/shared/PageHeader';
 import { useDashboardStore } from '../store/dashboard.store';
 import { useUIStore } from '../store/ui.store';
@@ -54,6 +55,12 @@ export function DashboardPage() {
         </Col>
         <Col xs={24} lg={8}>
           <AiChatCard />
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} className="mt-4">
+        <Col xs={24}>
+          <LoadGuardLog />
         </Col>
       </Row>
     </div>
