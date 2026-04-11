@@ -91,6 +91,61 @@ function adminDataBridgePlugin() {
         });
       });
 
+      // GET /api/kyc-alerts/preview — Preview at-risk KYC users (no Claude API call)
+      server.middlewares.use('/api/kyc-alerts/preview', async (_req: any, res: any) => {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+        try {
+          const mod = await import(path.resolve(__dirname, '../mcp/services/kyc-alert-service.js'));
+          const preview = mod.previewAtRiskUsers();
+          res.writeHead(200);
+          res.end(JSON.stringify(preview));
+        } catch (err: any) {
+          console.error('[KYC Alert Preview] Error:', err?.message || err);
+          res.writeHead(500);
+          res.end(JSON.stringify({ error: `Preview error: ${err?.message || 'Unknown error'}` }));
+        }
+      });
+
+      // POST /api/kyc-alerts/run — Run KYC alert engine (calls Claude API)
+      server.middlewares.use('/api/kyc-alerts/run', (req: any, res: any) => {
+        if (req.method === 'OPTIONS') {
+          res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' });
+          res.end();
+          return;
+        }
+        if (req.method !== 'POST') {
+          res.writeHead(405, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Method not allowed' }));
+          return;
+        }
+
+        // No body needed — just trigger the run
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'application/json');
+
+        (async () => {
+          try {
+            const env = loadEnvFile();
+            const apiKey = process.env.ANTHROPIC_API_KEY || env['ANTHROPIC_API_KEY'] || '';
+            if (!apiKey || apiKey === 'your_key_here') {
+              res.writeHead(500);
+              res.end(JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured.' }));
+              return;
+            }
+
+            const mod = await import(path.resolve(__dirname, '../mcp/services/kyc-alert-service.js'));
+            const result = await mod.runKycAlerts(apiKey);
+            res.writeHead(200);
+            res.end(JSON.stringify(result));
+          } catch (err: any) {
+            console.error('[KYC Alert Run] Error:', err?.message || err);
+            res.writeHead(502);
+            res.end(JSON.stringify({ error: `KYC Alert error: ${err?.message || 'Unknown error'}` }));
+          }
+        })();
+      });
+
       // POST /api/summarise-transactions — Claude AI transaction summariser (server-side)
       server.middlewares.use('/api/summarise-transactions', (req: any, res: any) => {
         if (req.method === 'OPTIONS') {

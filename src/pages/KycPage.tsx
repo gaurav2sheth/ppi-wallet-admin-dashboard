@@ -4,6 +4,7 @@ import { PageHeader } from '../components/shared/PageHeader';
 import { KycOverviewCards } from '../components/kyc/KycOverviewCards';
 import { KycPieChart } from '../components/kyc/KycPieChart';
 import { KycQueue } from '../components/kyc/KycQueue';
+import { KycAlertPanel } from '../components/kyc/KycAlertPanel';
 import { useKycStore } from '../store/kyc.store';
 import { useUIStore } from '../store/ui.store';
 
@@ -26,6 +27,13 @@ export function KycPage() {
       <PageHeader title="KYC Management" subtitle="Monitor KYC verification status and manage the verification queue" />
 
       {stats && <KycOverviewCards stats={stats} />}
+
+      {/* KYC Expiry Alert System — AI-powered outreach */}
+      <Row gutter={[16, 16]} className="mb-4">
+        <Col xs={24}>
+          <KycAlertPanel />
+        </Col>
+      </Row>
 
       <Row gutter={[16, 16]} className="mb-4">
         <Col xs={24} lg={10}>
