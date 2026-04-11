@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "admin-dashboard",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-c", "export PATH=/usr/local/bin:$PATH && cd /Users/GauravSheth/Documents/PPI_Wallet/admin-dashboard && npx vite --port 5174"],
+      "port": 5174
+    }
+  ]
+}
