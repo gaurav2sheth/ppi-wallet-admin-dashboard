@@ -18,7 +18,7 @@ export const adminApi = {
   getDashboardOverview: async (): Promise<DashboardOverview> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get('/admin/analytics/overview');
+      return await api.get('/overview');
     } catch {
       await delay();
       return mockGetDashboardOverview();
@@ -29,7 +29,7 @@ export const adminApi = {
   getUsers: async (filters: UserFilters): Promise<PaginatedResponse<WalletUser>> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get('/admin/users', { params: filters });
+      return await api.get('/users', { params: filters });
     } catch {
       await delay();
       return mockGetUsers(filters);
@@ -39,7 +39,7 @@ export const adminApi = {
   getUserDetail: async (userId: string): Promise<UserDetail | null> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get(`/admin/users/${userId}`);
+      return await api.get(`/users/${userId}`);
     } catch {
       await delay(200);
       return mockGetUserDetail(userId);
@@ -49,7 +49,7 @@ export const adminApi = {
   updateUserStatus: async (userId: string, newState: WalletState, reason?: string): Promise<WalletUser | null> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.patch(`/admin/users/${userId}/status`, { state: newState, reason });
+      return await api.patch(`/users/${userId}/status`, { state: newState, reason });
     } catch {
       await delay(200);
       return mockUpdateUserStatus(userId, newState);
@@ -60,7 +60,7 @@ export const adminApi = {
   getTransactions: async (filters: TransactionFilters): Promise<PaginatedResponse<Transaction>> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get('/admin/transactions', { params: filters });
+      return await api.get('/transactions', { params: filters });
     } catch {
       await delay();
       return mockGetTransactions(filters);
@@ -70,7 +70,7 @@ export const adminApi = {
   getTransactionDetail: async (txnId: string): Promise<TransactionDetail | null> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get(`/admin/transactions/${txnId}`);
+      return await api.get(`/transactions/${txnId}`);
     } catch {
       await delay(200);
       return mockGetTransactionDetail(txnId);
@@ -81,7 +81,7 @@ export const adminApi = {
   getKycStats: async (): Promise<KycStats> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get('/admin/kyc/stats');
+      return await api.get('/kyc/stats');
     } catch {
       await delay();
       return mockGetKycStats();
@@ -91,7 +91,7 @@ export const adminApi = {
   getKycQueue: async (): Promise<KycQueueItem[]> => {
     try {
       if (!apiReachable) throw new Error('mock');
-      return await api.get('/admin/kyc/queue');
+      return await api.get('/kyc/queue');
     } catch {
       await delay();
       return mockGetKycQueue();
