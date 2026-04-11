@@ -11,6 +11,7 @@ import { TransactionsPage } from './pages/TransactionsPage';
 import { TransactionDetailPage } from './pages/TransactionDetailPage';
 import { KycPage } from './pages/KycPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { BenefitsPage } from './pages/BenefitsPage';
 import { ForbiddenPage } from './pages/ForbiddenPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -42,6 +43,9 @@ export default function App() {
               <Route element={<AdminAuthGuard permission="kyc.view" />}>
                 <Route path="/kyc" element={<KycPage />} />
               </Route>
+
+              {/* Benefits Management */}
+              <Route path="/benefits" element={<BenefitsPage />} />
 
               {/* Settings - requires settings.view */}
               <Route element={<AdminAuthGuard permission="settings.view" />}>

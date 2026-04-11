@@ -7,6 +7,7 @@ export const ROUTES = {
   TRANSACTION_DETAIL: '/transactions/:id',
   KYC: '/kyc',
   ANALYTICS: '/analytics',
+  BENEFITS: '/benefits',
   CAMPAIGNS: '/campaigns',
   SETTINGS: '/settings',
   FORBIDDEN: '/403',

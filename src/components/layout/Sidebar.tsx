@@ -1,7 +1,7 @@
 import { Layout, Menu } from 'antd';
 import {
   DashboardOutlined, UserOutlined, SwapOutlined, SafetyCertificateOutlined,
-  BarChartOutlined, SettingOutlined,
+  BarChartOutlined, SettingOutlined, GiftOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
@@ -24,6 +24,7 @@ const MENU_ITEMS: MenuItem[] = [
   { key: 'users', icon: <UserOutlined />, label: 'Users', path: ROUTES.USERS, permission: 'users.view' },
   { key: 'transactions', icon: <SwapOutlined />, label: 'Transactions', path: ROUTES.TRANSACTIONS, permission: 'transactions.view' },
   { key: 'kyc', icon: <SafetyCertificateOutlined />, label: 'KYC Management', path: ROUTES.KYC, permission: 'kyc.view' },
+  { key: 'benefits', icon: <GiftOutlined />, label: 'Benefits', path: ROUTES.BENEFITS, permission: 'dashboard.view' },
   { key: 'analytics', icon: <BarChartOutlined />, label: 'Analytics', path: ROUTES.ANALYTICS, permission: 'analytics.view' },
   { key: 'settings', icon: <SettingOutlined />, label: 'Settings', path: ROUTES.SETTINGS, permission: 'settings.view' },
 ];
