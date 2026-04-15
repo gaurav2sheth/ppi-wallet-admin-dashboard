@@ -5,6 +5,7 @@ import { KycOverviewCards } from '../components/kyc/KycOverviewCards';
 import { KycPieChart } from '../components/kyc/KycPieChart';
 import { KycQueue } from '../components/kyc/KycQueue';
 import { KycAlertPanel } from '../components/kyc/KycAlertPanel';
+import { KycAgentPanel } from '../components/kyc/KycAgentPanel';
 import { useKycStore } from '../store/kyc.store';
 import { useUIStore } from '../store/ui.store';
 
@@ -32,6 +33,13 @@ export function KycPage() {
       <Row gutter={[16, 16]} className="mb-4">
         <Col xs={24}>
           <KycAlertPanel />
+        </Col>
+      </Row>
+
+      {/* KYC Upgrade Agent — AI agent control panel */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24}>
+          <KycAgentPanel />
         </Col>
       </Row>
 
