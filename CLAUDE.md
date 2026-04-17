@@ -41,11 +41,14 @@ React 19 + TypeScript + Vite 8 + Ant Design v5 + Zustand. HashRouter for GitHub 
 | COMPLIANCE_OFFICER | Dashboard, users (read), transactions, KYC, analytics |
 | MARKETING_MANAGER | Dashboard, analytics |
 
-## Mock Credentials
+## Demo Credentials
 
-- Super Admin: `admin` / `admin123`
-- Business Admin: `business` / `admin123`
-- CS Agent: `support` / `admin123`
+Demo credentials load from environment variables — see `.env.example`
+for the variable names. Three demo roles are wired (Super Admin,
+Business Admin, CS Agent); all use hardcoded demo auth with no real
+session, no MFA, no rotation. Demo-only pattern. See
+`docs/security.md §Auth` on the platform repo for production auth
+requirements.
 
 ## Key Components
 

@@ -3,3 +3,8 @@ dist
 .vite
 *.local
 .DS_Store
+
+# Environment — never commit
+.env
+.env.*
+!.env.example
