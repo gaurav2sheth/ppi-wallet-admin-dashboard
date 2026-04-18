@@ -9,6 +9,7 @@ export const ROUTES = {
   ANALYTICS: '/analytics',
   BENEFITS: '/benefits',
   CAMPAIGNS: '/campaigns',
+  SUPPORT: '/support',
   SETTINGS: '/settings',
   FORBIDDEN: '/403',
 } as const;

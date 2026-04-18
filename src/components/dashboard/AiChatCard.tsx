@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Card, Input, Button, Typography, Space } from 'antd';
-import { SendOutlined, RobotOutlined, CloseOutlined, MessageOutlined } from '@ant-design/icons';
+import { Card, Input, Button, Typography, Space, Tag } from 'antd';
+import { SendOutlined, RobotOutlined, CloseOutlined, MessageOutlined, FileTextOutlined } from '@ant-design/icons';
 import { mockGetUsers } from '../../api/mock/users.mock';
 import { mockGetTransactions } from '../../api/mock/transactions.mock';
 import { DEFAULT_USER_FILTERS } from '../../types/user.types';
@@ -9,16 +9,27 @@ import axios from 'axios';
 
 const { Text } = Typography;
 
+interface ChatMessageMeta {
+  intent?: string;
+  tools_used?: string[];
+  response_time_ms?: number;
+  ticket_id?: string;
+  resolved?: boolean;
+  confidence?: number;
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
+  meta?: ChatMessageMeta;
 }
 
 const SUGGESTED_QUESTIONS = [
-  'List all wallet users',
-  'Show recent transactions',
-  'Which transactions look suspicious?',
   'Show user statistics',
+  'List all wallet users',
+  'Which transactions look suspicious?',
+  'Check support tickets',
+  'Show support analytics',
 ];
 
 function formatPaise(paise: string | number): string {
@@ -30,6 +41,12 @@ function daysAgoLabel(iso: string): string {
   if (diff === 0) return 'today';
   if (diff === 1) return '1 day ago';
   return `${diff} days ago`;
+}
+
+/** Extract user_id from message if it contains a user_ pattern */
+function extractUserId(message: string): string | null {
+  const match = message.match(/user_[a-zA-Z0-9_-]+/i);
+  return match ? match[0] : null;
 }
 
 /** Local fallback responses built from real mock data */
@@ -125,6 +142,7 @@ export function AiChatCard() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,38 +156,93 @@ export function AiChatCard() {
     setInput('');
     setLoading(true);
 
+    const trimmedText = text.trim();
+    const userId = extractUserId(trimmedText);
+    const apiBase = import.meta.env.VITE_API_URL || '';
+
     try {
-      const apiBase = import.meta.env.VITE_API_URL || '';
-      // Send app context so AI responses match the dashboard data
-      const uf = (overrides: Partial<typeof DEFAULT_USER_FILTERS> = {}) => ({ ...DEFAULT_USER_FILTERS, ...overrides });
-      const tf = (overrides: Partial<typeof DEFAULT_TRANSACTION_FILTERS> = {}) => ({ ...DEFAULT_TRANSACTION_FILTERS, ...overrides });
-      const { data: ctxUsers, total: totalUsers } = mockGetUsers(uf({ pageSize: 20 }));
-      const { data: ctxTxns, total: totalTxns } = mockGetTransactions(tf({ pageSize: 15 }));
-      const context = {
-        total_users: totalUsers,
-        total_transactions: totalTxns,
-        users: ctxUsers.slice(0, 20).map(u => ({
-          name: u.name,
-          wallet_id: u.walletId,
-          balance: '₹' + (Number(u.balancePaise) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-          wallet_state: u.walletState,
-          kyc_state: u.kycState,
-        })),
-        recent_transactions: ctxTxns.slice(0, 15).map(t => ({
-          id: t.id,
-          user_name: t.userName,
-          saga_type: t.sagaType,
-          status: t.status,
-          amount: '₹' + (Number(t.amountPaise) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
-          description: t.description,
-          created_at: t.createdAt,
-        })),
-      };
-      const res = await axios.post(`${apiBase}/api/chat?role=admin`, { message: text.trim(), context }, { timeout: 60000 });
-      setMessages(prev => [...prev, { role: 'assistant', text: res.data.reply }]);
+      if (userId) {
+        // Route to support endpoint for user-specific queries
+        // Build context from dashboard mock data for the target user
+        const uf = (overrides: Partial<typeof DEFAULT_USER_FILTERS> = {}) => ({ ...DEFAULT_USER_FILTERS, ...overrides });
+        const tf = (overrides: Partial<typeof DEFAULT_TRANSACTION_FILTERS> = {}) => ({ ...DEFAULT_TRANSACTION_FILTERS, ...overrides });
+        const { data: allUsers } = mockGetUsers(uf({ pageSize: 200 }));
+        const matchedUser = allUsers.find(u => u.walletId === userId);
+        const { data: userTxns } = mockGetTransactions(tf({ pageSize: 50, walletId: userId }));
+        const filteredTxns = userTxns.filter(t => t.walletId === userId).slice(0, 10);
+
+        const supportContext = matchedUser ? {
+          balance_paise: String(matchedUser.balancePaise),
+          balance_formatted: formatPaise(matchedUser.balancePaise),
+          user_name: matchedUser.name,
+          kyc_tier: matchedUser.kycState,
+          recent_transactions: filteredTxns.map(t => ({
+            entry_type: t.sagaType === 'ADD_MONEY' ? 'CREDIT' : 'DEBIT',
+            amount_paise: String(t.amountPaise),
+            amount_formatted: formatPaise(t.amountPaise),
+            description: t.description,
+            transaction_type: t.sagaType,
+            created_at: t.createdAt,
+          })),
+        } : undefined;
+
+        const payload: Record<string, unknown> = {
+          user_id: userId,
+          message: trimmedText,
+          ...(sessionId ? { session_id: sessionId } : {}),
+          ...(supportContext ? { context: supportContext } : {}),
+        };
+
+        const res = await axios.post(`${apiBase}/api/support/chat`, payload, { timeout: 60000 });
+        const data = res.data;
+
+        // Persist session
+        if (data.session_id) {
+          setSessionId(data.session_id);
+        }
+
+        const meta: ChatMessageMeta = {
+          intent: data.intent_detected,
+          tools_used: data.tools_used,
+          response_time_ms: data.response_time_ms,
+          ticket_id: data.ticket_id ?? undefined,
+          resolved: data.resolved,
+          confidence: data.confidence,
+        };
+
+        setMessages(prev => [...prev, { role: 'assistant', text: data.response_text, meta }]);
+      } else {
+        // Admin analytics queries — use original endpoint
+        const uf = (overrides: Partial<typeof DEFAULT_USER_FILTERS> = {}) => ({ ...DEFAULT_USER_FILTERS, ...overrides });
+        const tf = (overrides: Partial<typeof DEFAULT_TRANSACTION_FILTERS> = {}) => ({ ...DEFAULT_TRANSACTION_FILTERS, ...overrides });
+        const { data: ctxUsers, total: totalUsers } = mockGetUsers(uf({ pageSize: 20 }));
+        const { data: ctxTxns, total: totalTxns } = mockGetTransactions(tf({ pageSize: 15 }));
+        const context = {
+          total_users: totalUsers,
+          total_transactions: totalTxns,
+          users: ctxUsers.slice(0, 20).map(u => ({
+            name: u.name,
+            wallet_id: u.walletId,
+            balance: '₹' + (Number(u.balancePaise) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+            wallet_state: u.walletState,
+            kyc_state: u.kycState,
+          })),
+          recent_transactions: ctxTxns.slice(0, 15).map(t => ({
+            id: t.id,
+            user_name: t.userName,
+            saga_type: t.sagaType,
+            status: t.status,
+            amount: '₹' + (Number(t.amountPaise) / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 }),
+            description: t.description,
+            created_at: t.createdAt,
+          })),
+        };
+        const res = await axios.post(`${apiBase}/api/chat?role=admin`, { message: trimmedText, context }, { timeout: 60000 });
+        setMessages(prev => [...prev, { role: 'assistant', text: res.data.reply }]);
+      }
     } catch {
       // Fallback: use real data from the app's mock layer
-      setMessages(prev => [...prev, { role: 'assistant', text: getLocalResponse(text) }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: getLocalResponse(trimmedText) }]);
     } finally {
       setLoading(false);
     }
@@ -230,20 +303,71 @@ export function AiChatCard() {
         )}
 
         {messages.map((msg, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
-            <div style={{
-              maxWidth: '85%',
-              padding: '8px 12px',
-              borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
-              background: msg.role === 'user' ? '#7c3aed' : 'white',
-              color: msg.role === 'user' ? 'white' : 'inherit',
-              border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none',
-              fontSize: 13,
-              lineHeight: 1.5,
-              whiteSpace: 'pre-line',
-            }}>
-              {msg.text}
+          <div key={i} style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div style={{
+                maxWidth: '85%',
+                padding: '8px 12px',
+                borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+                background: msg.role === 'user' ? '#7c3aed' : 'white',
+                color: msg.role === 'user' ? 'white' : 'inherit',
+                border: msg.role === 'assistant' ? '1px solid #f0f0f0' : 'none',
+                fontSize: 13,
+                lineHeight: 1.5,
+                whiteSpace: 'pre-line',
+              }}>
+                {msg.text}
+              </div>
             </div>
+
+            {/* Metadata badges for assistant messages */}
+            {msg.role === 'assistant' && msg.meta && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4, paddingLeft: 4 }}>
+                {msg.meta.intent && (
+                  <Tag color="blue" style={{ fontSize: 10, lineHeight: '18px', margin: 0 }}>
+                    {msg.meta.intent}
+                  </Tag>
+                )}
+                {msg.meta.tools_used && msg.meta.tools_used.length > 0 && (
+                  <Tag color="purple" style={{ fontSize: 10, lineHeight: '18px', margin: 0 }}>
+                    {msg.meta.tools_used.length} tool{msg.meta.tools_used.length !== 1 ? 's' : ''} used
+                  </Tag>
+                )}
+                {msg.meta.response_time_ms != null && (
+                  <Tag color="default" style={{ fontSize: 10, lineHeight: '18px', margin: 0 }}>
+                    {msg.meta.response_time_ms}ms
+                  </Tag>
+                )}
+                {msg.meta.confidence != null && (
+                  <Tag color={msg.meta.confidence >= 0.8 ? 'green' : 'orange'} style={{ fontSize: 10, lineHeight: '18px', margin: 0 }}>
+                    {(msg.meta.confidence * 100).toFixed(0)}% confidence
+                  </Tag>
+                )}
+                {msg.meta.resolved === true && (
+                  <Tag color="green" style={{ fontSize: 10, lineHeight: '18px', margin: 0 }}>
+                    Resolved
+                  </Tag>
+                )}
+                {msg.meta.resolved === false && (
+                  <Tag color="orange" style={{ fontSize: 10, lineHeight: '18px', margin: 0 }}>
+                    Unresolved
+                  </Tag>
+                )}
+                {msg.meta.ticket_id && (
+                  <Tag
+                    icon={<FileTextOutlined />}
+                    color="volcano"
+                    style={{ fontSize: 10, lineHeight: '18px', margin: 0, cursor: 'pointer' }}
+                    onClick={() => {
+                      // Navigate to tickets view — use hash router link
+                      window.location.hash = `#/tickets?id=${msg.meta!.ticket_id}`;
+                    }}
+                  >
+                    View Ticket {msg.meta.ticket_id}
+                  </Tag>
+                )}
+              </div>
+            )}
           </div>
         ))}
 
@@ -264,7 +388,7 @@ export function AiChatCard() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onPressEnter={() => sendMessage(input)}
-          placeholder="Ask about users, transactions..."
+          placeholder="Ask about users, transactions... (use user_id: for support queries)"
           disabled={loading}
           style={{ borderRadius: 20, flex: 1 }}
         />

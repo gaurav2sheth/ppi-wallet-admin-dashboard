@@ -12,6 +12,7 @@ import { TransactionDetailPage } from './pages/TransactionDetailPage';
 import { KycPage } from './pages/KycPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BenefitsPage } from './pages/BenefitsPage';
+import { SupportPage } from './pages/SupportPage';
 import { ForbiddenPage } from './pages/ForbiddenPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -46,6 +47,9 @@ export default function App() {
 
               {/* Benefits Management */}
               <Route path="/benefits" element={<BenefitsPage />} />
+
+              {/* Support Operations */}
+              <Route path="/support" element={<SupportPage />} />
 
               {/* Settings - requires settings.view */}
               <Route element={<AdminAuthGuard permission="settings.view" />}>
